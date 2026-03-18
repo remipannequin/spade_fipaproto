@@ -241,6 +241,7 @@ class ContractNetInitiator(FSMBehaviour):
         replies = []
         for p in propositions:
             r = p.make_reply()
+            r.metadata = r.metadata.copy()
             r.set_metadata("performative", Perf.REFUSE)
             replies.append(r)
         return replies

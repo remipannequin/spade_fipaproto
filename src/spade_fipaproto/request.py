@@ -25,6 +25,7 @@ class AchieveREInitiator(FSMBehaviour):
         def __init__(self, request):
             State.__init__(self)
             self.request = request
+            # set metadata such as performative and protocol here ?
 
         async def run(self):
             await self.send(self.request)
@@ -44,16 +45,16 @@ class AchieveREInitiator(FSMBehaviour):
                 self.set_next_state(AchieveREInitiator.RECEIVE_STATE)
             else:
                 # next behaviour according to performative
-                if reply.get_metadata("performative") == Perf.AGREE:
+                if reply.get_metadata("performative") == Perf.AGREE.value:
                     self.parent.on_agree(reply)
                     self.set_next_state(AchieveREInitiator.RECEIVE_STATE)
-                elif reply.get_metadata("performative") == Perf.REFUSE:
+                elif reply.get_metadata("performative") == Perf.REFUSE.value:
                     self.parent.on_refuse(reply)
                     self.set_next_state(AchieveREInitiator.RECEIVE_STATE)
-                elif reply.get_metadata("performative") == Perf.INFORM:
+                elif reply.get_metadata("performative") == Perf.INFORM.value:
                     self.parent.on_inform(reply)
                     self.set_next_state("")
-                elif reply.get_metadata("performative") == Perf.FAILURE:
+                elif reply.get_metadata("performative") == Perf.FAILURE.value:
                     self.parent.on_failure(reply)
                     self.set_next_state("")
 
@@ -125,10 +126,12 @@ class AchieveREResponder(CyclicBehaviour):
     async def done(self, request, failure=False, body=None):
         """Call this to notify of the end of the operation"""
         reply = request.make_reply()
+        # make a copy to work around a bug in spade
+        reply.metadata = reply.metadata.copy()
         if not failure:
-            reply.set_metadata("performative", Perf.INFORM)
+            reply.set_metadata("performative", Perf.INFORM.value)
         else:
-            reply.set_metadata("performative", Perf.FAILURE)
+            reply.set_metadata("performative", Perf.FAILURE.value)
         if body:
             reply.body = body
         else:
