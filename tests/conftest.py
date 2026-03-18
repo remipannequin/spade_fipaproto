@@ -3,6 +3,7 @@ import time
 import subprocess
 import signal
 import pytest
+import spade
 
 
 @pytest.fixture(scope="session")
@@ -17,3 +18,8 @@ def spade_broker():
     print("Spade XMPP server closed")
 
 
+@pytest.fixture(scope="function")
+def spade_container(spade_broker):
+    host, port = spade_broker
+    spade.container.Container().reset()  # type: ignore
+    yield host, port

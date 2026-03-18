@@ -67,7 +67,7 @@ class InitiatorTestAg(Agent):
         self.add_behaviour(self.init_cnp)
 
 
-def test_basic_cnp(spade_broker):
+def test_basic_cnp(spade_container):
     success = False
     async def start_ag():
         """Launch one testing agent."""
@@ -82,6 +82,6 @@ def test_basic_cnp(spade_broker):
         await initiator_ag.stop()
         await responder_ag.stop()
         success = True
-        
-    spade.container.Container().reset()  # type: ignore
+
+    
     spade.run(start_ag())
