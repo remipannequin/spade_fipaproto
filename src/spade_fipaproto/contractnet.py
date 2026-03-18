@@ -180,12 +180,13 @@ class ContractNetInitiator(FSMBehaviour):
     ):
         """Initiate a contract net protocol, by sending a message with the given body either
         to a list of agents, or to a MQTT topic."""    
+        self.body = body
         if participants:
             self.participants = participants
-            self.send_state = self.SendCallParticipants(self, self.body)
+            self.topic = None
         elif mqtt_topic:
             self.topic = mqtt_topic
-            self.send_state = self.SendCallMqtt(self, self.body)
+            self.participants = None
         else:
             raise ValueError("One of the argument participants or mqtt_topic must be passed")
         self.thread = str(uuid.uuid1())
@@ -193,7 +194,6 @@ class ContractNetInitiator(FSMBehaviour):
         # a timedelta (relative time) or a datetime (absolute dl)
         # or None : no wait indefinitely
         self.timeout = dt.now() + timedelta(seconds=timeout)
-        self.body = body
         # TODO make a version where we wait for a number of reply instead
         self.propositions: list[Message] = []
         self.refusals: list[Message] = []
@@ -208,9 +208,10 @@ class ContractNetInitiator(FSMBehaviour):
         FSMBehaviour.__init__(self)
 
     def setup(self):
-
-        self.add_state(self.SEND_CFP, self.SendCallMqtt(self, self.body), initial=True)
-
+        if self.participants:
+            self.add_state(self.SEND_CFP, self.SendCallParticipants(self, self.body), initial=True)
+        elif self.topic:
+            self.add_state(self.SEND_CFP, self.SendCallMqtt(self, self.body), initial=True)
         self.add_state(self.RECEIVE_PROP, self.ReceivePropositions(self))
         self.add_state(self.SEND_ACCEPTANCE, self.SendAcceptances(self))
         self.add_state(self.RECEIVE_DONE, self.ReceiveDone(self))
@@ -317,8 +318,8 @@ class ContractNetResponder(FSMBehaviour):
 
         async def run(self):
             assert self.agent
-            logger.debug("CNP Responder: Waiting for MQTT message")
-            cfp = await self.receive(self.parent.topic)
+            logger.debug("CNP Responder: Waiting for CFP message")
+            cfp = await self.receive(5)
             if cfp:
                 # Extract the message
                 props = cfp.metadata
@@ -408,12 +409,13 @@ class ContractNetResponder(FSMBehaviour):
         if self.topic:
             self.add_state(self.SUBSCRIBE, self.Subscribe(self), initial=True)
             self.add_state(self.WAIT_CALL, self.WaitCallMqtt(self))
+            self.add_transition(self.SUBSCRIBE, self.WAIT_CALL)
         else:
             self.add_state(self.WAIT_CALL, self.WaitCall(self), initial=True)
         self.add_state(self.WAIT_ACCEPT, self.WaitAccept(self))
         self.add_state(self.RESPOND_TO_CALL, self.RespondToCall(self))
         self.add_state(self.SEND_NOTIFICATION, self.SendNotification(self))
-        self.add_transition(self.SUBSCRIBE, self.WAIT_CALL)
+        
         self.add_transition(self.WAIT_CALL, self.WAIT_CALL)
         self.add_transition(self.WAIT_CALL, self.RESPOND_TO_CALL)
         self.add_transition(self.RESPOND_TO_CALL, self.WAIT_ACCEPT)
