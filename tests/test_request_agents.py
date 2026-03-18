@@ -29,6 +29,7 @@ class ResponderTestAgent(Agent):
             self.set("current_request", request)
             print(f"responder got a request to {request.body}")
             agree = request.make_reply()
+            agree.metadata = agree.metadata.copy()
             agree.set_metadata("performative", Perf.AGREE)
             agree.body = "Okay."
             # add behaviour that will simulate an inform-done

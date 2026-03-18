@@ -17,6 +17,7 @@ class ResponderTestAgent(Agent):
         def handle_propose(call: Message) -> Message:
             print(f'responder got call "{call.body}"')
             prop = call.make_reply()
+            prop.metadata = prop.metadata.copy()
             prop.set_metadata("performative", Perf.PROPOSE)
             prop.body = "50€"
             return prop
@@ -24,6 +25,7 @@ class ResponderTestAgent(Agent):
         def handle_accept(accept: Message):
             print(f'responder proposition was accepted: "{accept.body}"')
             inform = accept.make_reply()
+            inform.metadata = inform.metadata.copy()
             inform.set_metadata("performative", Perf.INFORM)
             inform.body = "I will close the window shortly."
             return inform
@@ -59,6 +61,7 @@ class InitiatorTestAg(Agent):
         def accept(m):
             print(f'initiator got proposition "{m.body}", accepting')
             r = m.make_reply()
+            r.metadata = r.metadata.copy()
             r.set_metadata("performative", Perf.ACCEPT_PROPOSAL)
             r.body = "Done Deal !"
             return r
