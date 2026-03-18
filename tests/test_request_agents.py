@@ -71,12 +71,10 @@ class InitiatorTestAg(Agent):
         # create a request message
         rq = Message(to="responder@localhost")
         rq.body = "Close the window !"
-        rq.set_metadata("performative", Perf.REQUEST)
+        rq.set_metadata("performative", Perf.REQUEST.value)
         # add initiator behaviour
         self.init_re = TestInitiator(rq)
         self.add_behaviour(self.init_re)
-
-
 
 
 def test_basic_interaction(spade_container):
@@ -92,6 +90,25 @@ def test_basic_interaction(spade_container):
         # wait for initiator to finish
         await initiator_ag.init_re.join()
         # test if responder got the request
+        trace: list[tuple[dt, Message, str]] = responder_ag.traces.filter(to="initiator@localhost") # type: ignore
+        assert len(trace) == 3
+        trace.sort(key=lambda e: e[0])
+        assert all([e[2] == "CyclicBehaviour/AchieveREResponder" for e in trace])
+        start, m1 = trace[0][:2]
+        assert m1.thread
+        assert m1.sender == "initiator@localhost"
+        assert m1.to == "responder@localhost"
+        assert "performative" in m1.metadata
+        assert m1.metadata["performative"] == Perf.REQUEST.value
+        t_agree, m2 = trace[1][:2]
+        assert "performative" in m2.metadata
+        assert m2.metadata["performative"] == Perf.AGREE.value
+        assert t_agree - start < timedelta(seconds=2)
+        assert m2.thread == m1.thread
+        m3 = trace[2][1]
+        assert "performative" in m3.metadata
+        assert m3.metadata["performative"] == Perf.INFORM.value
+        assert m3.thread == m1.thread
 
         # test if initiator got replies: agree, then inform-done
 
