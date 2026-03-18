@@ -12,7 +12,7 @@
     "spade>=4.1.2",
     "spade_pubsub"
  ]
-  version="0.5.0"
+  version="0.6.0"
 
 [project.optional-dependencies]
   mqtt = ["spade_mqtt"]
