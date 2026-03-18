@@ -5,14 +5,14 @@
 [project]
  name = "spade_fipaproto"
  packages = ["spade_fipaproto"]
- description = "MQTT mixin for spade, enabling agents to pub/sub to MQTT topics."
+ description = "Implementation with spade of some FIPA interaction protocols, such as FIPA-Request and FIPA-ContractNet"
  readme = "README.md"
  requires-python = ">=3.11"
  dependencies = [
     "spade>=4.1.2",
     "spade_pubsub"
  ]
-  version="0.6.0"
+  version="0.5.1"
 
 [project.optional-dependencies]
   mqtt = ["spade_mqtt"]
