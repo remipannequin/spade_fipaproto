@@ -7,6 +7,7 @@
  packages = ["spade_fipaproto"]
  description = "MQTT mixin for spade, enabling agents to pub/sub to MQTT topics."
  readme = "README.md"
+ requires-python = ">=3.11"
  dependencies = [
     "spade>=4.1.2",
     "spade_pubsub"
@@ -36,7 +37,7 @@
  addopts = "-ra"
 
 [tool.tox]
-  env_list=["py310", "py311", "py312"]
+  env_list=["py311", "py312"]
 
 [tool.tox.env_run_base]
   extras = ["test"]
