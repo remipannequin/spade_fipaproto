@@ -1,10 +1,17 @@
 """Test Achieve Rational Effect initiator and Responder, test CNP init and responder."""
 
+from datetime import datetime, timedelta
+
 import spade
 from spade.agent import Agent
 from spade.message import Message
+from spade.template import Template
 
-from spade_fipaproto import ContractNetInitiator, ContractNetResponder, Performatives as Perf
+from spade_fipaproto import (
+    ContractNetInitiator,
+    ContractNetResponder,
+    Performatives as Perf,
+)
 
 
 class ResponderTestAgent(Agent):
@@ -30,12 +37,12 @@ class ResponderTestAgent(Agent):
             inform.body = "I will close the window shortly."
             return inform
 
-        # receive CFP on a xmpp topic
-
+        # receive CFP
         self.cnp_responder = ContractNetResponder()
         self.cnp_responder.propose = handle_propose
         self.cnp_responder.handle_accept_prop = handle_accept
-        self.add_behaviour(self.cnp_responder) # TODO add filter on protocol metadata ?
+        tmpl = Template(metadata={"performative": Perf.CALL_FOR_PROPOSAL.value})
+        self.add_behaviour(self.cnp_responder, template=tmpl)  # TODO add filter on protocol metadata ?
 
 
 class InitiatorTestAg(Agent):
@@ -51,7 +58,7 @@ class InitiatorTestAg(Agent):
         self.init_cnp = ContractNetInitiator(
             timeout=20,  # if timeout is too high, the CFP from previous exec trigger the responder
             body="How much to open the window ?",
-            participants=["responder@localhost"]
+            participants=["responder@localhost"],
         )
         self.init_cnp.handle_done = lambda m: print(
             f'initiator got final notification: "{m.body}"'
@@ -72,6 +79,7 @@ class InitiatorTestAg(Agent):
 
 def test_basic_cnp(spade_container):
     success = False
+
     async def start_ag():
         """Launch one testing agent."""
         nonlocal success
@@ -82,9 +90,32 @@ def test_basic_cnp(spade_container):
 
         # wait for initiator to finish
         await initiator_ag.init_cnp.join()
+
+        init_trace: list[tuple[datetime, Message, str]] = initiator_ag.traces.filter(to="responder@localhost")  # type: ignore
+        assert len(init_trace) == 4
+        init_trace.sort(key=lambda e: e[0])
+        start, m1 = init_trace[0][:2]
+        assert m1.thread
+        assert m1.sender == "initiator@localhost"
+        assert m1.to == "responder@localhost"
+        assert "performative" in m1.metadata
+        assert m1.metadata["performative"] == Perf.CALL_FOR_PROPOSAL.value
+        t_agree, m2 = init_trace[1][:2]
+        assert "performative" in m2.metadata
+        assert m2.metadata["performative"] == Perf.PROPOSE.value
+        assert m2.thread == m1.thread
+        m3 = init_trace[2][1]
+        assert "performative" in m3.metadata
+        assert m3.metadata["performative"] == Perf.ACCEPT_PROPOSAL.value
+        assert m3.thread == m1.thread
+        m4 = init_trace[3][1]
+        assert "performative" in m4.metadata
+        assert m4.metadata["performative"] == Perf.INFORM.value
+        assert m4.thread == m1.thread
+
         await initiator_ag.stop()
         await responder_ag.stop()
         success = True
 
-    
     spade.run(start_ag())
+    assert success
