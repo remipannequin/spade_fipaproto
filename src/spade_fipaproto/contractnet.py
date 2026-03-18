@@ -66,15 +66,15 @@ class ContractNetInitiator(FSMBehaviour):
 
         async def run(self):
             assert self.agent, "Error, agent is None"
+            assert self.parent.participants
             logger.debug("CNP initiator: sending Call to a list of agents")
             
             props = {
-                "reply-to": str(self.agent.jid),
                 "reply-before": self.parent.timeout.isoformat(),
-                "thread": self.parent.thread,
+                "performative": Perf.CALL_FOR_PROPOSAL.value
             }
             for dest in self.parent.participants:
-                msg = Message(to=dest, body=self.body, metadata=props)
+                msg = Message(to=dest, body=self.body, metadata=props, thread=self.parent.thread)
                 await self.send(msg)
             self.set_next_state(ContractNetInitiator.RECEIVE_PROP)
 
