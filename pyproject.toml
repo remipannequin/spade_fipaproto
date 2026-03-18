@@ -1,0 +1,44 @@
+[build-system]
+ requires = ["hatchling >= 1.26"]
+ build-backend = "hatchling.build"
+
+[project]
+ name = "spade_fipaproto"
+ packages = ["spade_fipaproto"]
+ description = "MQTT mixin for spade, enabling agents to pub/sub to MQTT topics."
+ readme = "README.md"
+ dependencies = [
+    "spade>=4.1.2",
+    "spade_pubsub"
+ ]
+  version="0.5.0"
+
+[project.optional-dependencies]
+  mqtt = ["spade_mqtt"]
+  dev = [
+    "black",
+    "ruff"
+  ]
+  test = [
+    "pytest",
+    "pytest-cov",
+    "pytest-asyncio"
+  ]
+
+[tool.hatch.build.targets.sdist]
+ ignore-vcs = false
+
+[tool.ruff]
+ line-length = 93
+
+[tool.pytest.ini_options]
+ testpaths = ["tests"]
+ addopts = "-ra"
+
+[tool.tox]
+  env_list=["py310", "py311", "py312"]
+
+[tool.tox.env_run_base]
+  extras = ["test"]
+  commands = [["pytest"]]
+  package = "wheel"
